@@ -8,9 +8,18 @@
     "scheme": "controlelectoral",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Permite tomar la foto de evidencia del acta electoral."
+      }
     },
     "android": {
+      "package": "com.controlelectoral.app",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -32,11 +41,34 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
-      ]
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Permite adjuntar la ubicación al acta electoral."
+        }
+      ],
+      "@maplibre/maplibre-react-native",
+      "expo-sqlite",
+      [
+        "@sentry/react-native/expo",
+        {
+          "organization": "jennyfer-6k",
+          "project": "control-electoral"
+        }
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "c9d02518-17bf-4d9d-8485-fed8c8da6542"
+      }
+    },
+    "owner": "jennyferg"
   }
 }

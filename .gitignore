@@ -30,8 +30,13 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
+# Documentación del examen y credenciales locales
+/documentos/
+.env
 .env*.local
+.env.sentry-build-plugin
+.sentryclirc
+/supabase/.temp/
 
 # typescript
 *.tsbuildinfo

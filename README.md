@@ -1,56 +1,42 @@
-# Welcome to your Expo app 👋
+# Control Electoral
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Aplicación móvil de escrutinio con Expo SDK 57, TypeScript y Clean Architecture. Las decisiones consensuadas están en [AGENTS.md](AGENTS.md).
 
-## Get started
+## Desarrollo y verificación
 
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```sh
+npm ci
+npx expo start --dev-client
+npx expo lint
+npx tsc --noEmit
+npx expo install --check
+npx expo-doctor
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+`src/app` contiene las rutas. Cada módulo en `src/modulos` reserva sus capas de dominio, aplicación, infraestructura y presentación. La [guía de Supabase](supabase/README.md) documenta las migraciones, la precarga y el despliegue de las Edge Functions.
 
-### Other setup steps
+## Compilación Android
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+Vincula el repositorio con el proyecto de Expo mediante `npx eas-cli@latest init`. El perfil `development` genera un cliente de desarrollo y el perfil `apk` genera la aplicación instalable.
 
-## Learn more
+```sh
+npx eas-cli@latest build --platform android --profile development
+npx eas-cli@latest build --platform android --profile apk
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+## Monitoreo y prueba de defensa
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+El plugin de Expo apunta al proyecto `jennyfer-6k/control-electoral`. Metro incorpora los identificadores de depuración que Sentry usa para localizar los mapas de código fuente. El DSN público se lee de `EXPO_PUBLIC_SENTRY_DSN` en `.env` para desarrollo y del entorno `preview` de EAS para el APK. Para subir los mapas en la compilación, guarda un token de CI de Sentry como variable **Secret** `SENTRY_AUTH_TOKEN` del mismo entorno de EAS. Usa el prefijo `EXPO_PUBLIC_` solo para variables destinadas a la aplicación.
 
-## Join the community
+En Android, el SDK nativo usa una cola persistente de hasta 30 sobres y reintenta el envío tras recuperar la conexión. El filtro de JavaScript conserva la pila, pantalla, rol y metadatos técnicos. La aplicación usa un identificador aleatorio de instalación para correlacionar informes, independiente de las cuentas de Supabase. En Sentry se descartan las direcciones IP, los mensajes originales de las excepciones y los archivos de volcado.
 
-Join our community of developers creating universal apps.
+```sh
+npx eas-cli@latest build --platform android --profile defensa
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+1. Instala el APK del perfil `defensa`. Ingresa como coordinador provincial y abre **Diagnóstico de Sentry**.
+2. Pulsa **Registrar error controlado** y copia el identificador. En **Issues**, filtra por entorno `defensa` y por `operacion:prueba-defensa` para ver el incidente **PruebaDefensa**. Revisa la etiqueta `pantalla`, el modelo del dispositivo, la versión de Android y la línea de TypeScript en la pila.
+3. Para probar la cola, vuelve al diagnóstico, activa el modo avión y genera otro evento. Apunta su identificador, recupera la conexión y busca ese evento en Sentry. Si hace falta, vuelve a abrir la aplicación.
+4. Para el fallo fatal, pulsa **Preparar prueba fatal nativa** y confirma. Vuelve a abrir la aplicación y verifica el evento nativo en Sentry.
+
+El perfil `apk` deja el diagnóstico desactivado.

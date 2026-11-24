@@ -1,0 +1,24 @@
+{
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "apk": {
+      "distribution": "internal",
+      "environment": "preview",
+      "env": {
+        "EXPO_PUBLIC_PRUEBA_SENTRY": "false"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "defensa": {
+      "extends": "apk",
+      "env": {
+        "EXPO_PUBLIC_PRUEBA_SENTRY": "true"
+      }
+    }
+  }
+}

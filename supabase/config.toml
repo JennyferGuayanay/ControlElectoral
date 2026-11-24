@@ -1,0 +1,22 @@
+project_id = "controlelectoral"
+
+[auth]
+enable_signup = false
+enable_anonymous_sign_ins = false
+
+[auth.email]
+enable_signup = false
+enable_confirmations = true
+
+[auth.sms]
+enable_signup = false
+
+# Cada función verifica firma, usuario y sesión y vuelve a comprobar permisos en PostgreSQL.
+[functions.crear-cuenta]
+verify_jwt = false
+
+[functions.restablecer-clave]
+verify_jwt = false
+
+[functions.cambiar-clave-temporal]
+verify_jwt = false

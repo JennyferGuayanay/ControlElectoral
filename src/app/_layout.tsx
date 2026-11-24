@@ -1,18 +1,62 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Stack, useSegments } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { useEffect, useState } from 'react';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
+import { repositorioAcceso } from '@/modulos/acceso/infraestructura/repositorio-supabase';
+import { Aviso, Boton, Encabezado, Marco } from '@/modulos/acceso/presentacion/interfaz';
+import { ProveedorAcceso, useAcceso } from '@/modulos/acceso/presentacion/proveedor-acceso';
+import { obtenerPantalla } from '@/modulos/monitoreo/aplicacion/monitoreo';
+import { LimiteErrores, fijarContexto, reportarFallo } from '@/modulos/monitoreo/infraestructura/sentry';
 
-SplashScreen.preventAutoHideAsync();
+function RutasProtegidas() {
+  const { estado } = useAcceso();
+  const segmentos = useSegments();
+  const rol = estado.tipo === 'habilitado' ? estado.perfil.rol_codigo : null;
+  const enAcceso = estado.tipo === 'sin-sesion' || estado.tipo === 'correo' || estado.tipo === 'clave-temporal';
+  const pantalla = obtenerPantalla(segmentos.at(-1));
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  useEffect(() => {
+    fijarContexto(pantalla, rol ?? 'sin-sesion');
+  }, [pantalla, rol]);
+
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      <AppTabs />
-    </ThemeProvider>
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Protected guard={!enAcceso && !rol}>
+        <Stack.Screen name="index" />
+      </Stack.Protected>
+      <Stack.Protected guard={enAcceso}>
+        <Stack.Screen name="(acceso)" />
+      </Stack.Protected>
+      <Stack.Protected guard={rol === 'provincial'}>
+        <Stack.Screen name="(provincial)" />
+      </Stack.Protected>
+      <Stack.Protected guard={rol === 'recinto'}>
+        <Stack.Screen name="(recinto)" />
+      </Stack.Protected>
+      <Stack.Protected guard={rol === 'veedor'}>
+        <Stack.Screen name="(veedor)" />
+      </Stack.Protected>
+    </Stack>
+  );
+}
+
+export default function NavegacionPrincipal() {
+  const [consultas] = useState(() => new QueryClient());
+  return (
+    <LimiteErrores fallback={({ resetError }) => (
+      <Marco>
+        <Encabezado titulo="Interrupción inesperada" />
+        <Aviso mensaje={{ tipo: 'error', texto: 'La pantalla se interrumpió. Vuelve a intentarlo.' }} />
+        <Boton titulo="Volver a intentar" alPulsar={resetError} />
+      </Marco>
+    )}>
+      <QueryClientProvider client={consultas}>
+        <ProveedorAcceso repositorio={repositorioAcceso} reportarFallo={reportarFallo}>
+          <StatusBar style="dark" />
+          <RutasProtegidas />
+        </ProveedorAcceso>
+      </QueryClientProvider>
+    </LimiteErrores>
   );
 }
