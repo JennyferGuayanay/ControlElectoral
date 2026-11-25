@@ -1,10 +1,9 @@
 import { useForm } from '@tanstack/react-form';
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
 
 import { esquemaIngreso } from '../dominio/acceso';
 import {
-  Aviso, Boton, Campo, colores, Encabezado, Enlace, errorDeCampo, Marco,
+  Aviso, Boton, Campo, Enlace, errorDeCampo, Marco,
   mensajeDeError, Panel, type Mensaje,
 } from './interfaz';
 
@@ -28,18 +27,8 @@ export default function PantallaIngreso() {
   });
 
   return (
-    <Marco>
-      <View style={estilos.jurisdiccion}>
-        <View pointerEvents="none" style={estilos.marcas} importantForAccessibility="no-hide-descendants">
-          <View style={[estilos.diagonal, estilos.diagonalUno]} />
-          <View style={[estilos.diagonal, estilos.diagonalDos]} />
-          <View style={[estilos.diagonal, estilos.diagonalTres]} />
-        </View>
-        <Text style={estilos.ubicacion}>Imbabura / Cotacachi</Text>
-        <Text style={estilos.nombreJornada}>Escrutinio electoral</Text>
-      </View>
-      <Encabezado titulo="Iniciar sesión" detalle="Entra con tu correo registrado y tu contraseña." />
-      <Panel>
+    <Marco portada="ingreso">
+      <Panel acceso>
         <formulario.Subscribe selector={(estado) => estado.isSubmitting}>
           {(ingresando) => (
             <>
@@ -47,6 +36,8 @@ export default function PantallaIngreso() {
                 {(campo) => (
                   <Campo
                     etiqueta="Correo electrónico"
+                    integrado
+                    icono="correo"
                     value={campo.state.value}
                     onBlur={campo.handleBlur}
                     onChangeText={campo.handleChange}
@@ -63,6 +54,7 @@ export default function PantallaIngreso() {
                 {(campo) => (
                   <Campo
                     etiqueta="Contraseña"
+                    integrado
                     value={campo.state.value}
                     onBlur={campo.handleBlur}
                     onChangeText={campo.handleChange}
@@ -79,12 +71,16 @@ export default function PantallaIngreso() {
               </formulario.Field>
               <Aviso mensaje={mensaje} />
               <Boton
-                titulo="Entrar"
+                acceso
+                titulo="Iniciar sesión"
+                icono="ingreso"
                 tituloCarga="Comprobando acceso…"
                 cargando={ingresando}
                 alPulsar={() => void formulario.handleSubmit()}
               />
-              {!ingresando && <Enlace href="/recuperar" texto="Olvidé mi contraseña" />}
+              {!ingresando && (
+                <Enlace href="/recuperar" texto="Recuperar contraseña" icono="llave" centrado />
+              )}
             </>
           )}
         </formulario.Subscribe>
@@ -92,17 +88,3 @@ export default function PantallaIngreso() {
     </Marco>
   );
 }
-
-const estilos = StyleSheet.create({
-  jurisdiccion: {
-    backgroundColor: colores.azul, paddingVertical: 17, paddingHorizontal: 18, gap: 5,
-    overflow: 'hidden', borderRadius: 13, borderLeftWidth: 6, borderLeftColor: colores.amarillo,
-  },
-  ubicacion: { color: '#F9D95E', fontSize: 14, fontWeight: '700', letterSpacing: 0.6 },
-  nombreJornada: { color: colores.blanco, fontSize: 23, fontWeight: '700', maxWidth: '85%' },
-  marcas: { position: 'absolute', top: -50, right: -23, width: 164, height: 190 },
-  diagonal: { position: 'absolute', height: 205, transform: [{ rotate: '37deg' }], borderRadius: 4 },
-  diagonalUno: { width: 20, right: 26, backgroundColor: '#234A80' },
-  diagonalDos: { width: 9, right: 56, backgroundColor: '#2C548B' },
-  diagonalTres: { width: 3, right: 78, backgroundColor: '#386097' },
-});

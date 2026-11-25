@@ -1,15 +1,15 @@
 import { useState } from 'react';
 
-import { Aviso, Boton, Encabezado, Marco, mensajeDeError, type Mensaje } from '@/modulos/acceso/presentacion/interfaz';
-import { Tarjeta, Texto } from '@/modulos/operacion/presentacion/componentes';
+import { Aviso, Boton, Marco, mensajeDeError, type Mensaje } from '@/modulos/acceso/presentacion/interfaz';
+import { EstadoRegistro, Tarjeta, Texto } from '@/modulos/operacion/presentacion/componentes';
 
 import type { ServicioActas } from '../aplicacion/actas';
 import { prepararEnvio, type ActaConfirmada, type Borrador, type Candidato, type MesaElectoral, type UbicacionEvidencia, type ValoresActa } from '../dominio/acta';
+import { CabeceraRegistroActa, EtapasActa } from './cabecera-registro-acta';
 import { CapturaFoto } from './captura-foto';
+import { EncuadreDocumento, FotoActa, TarjetaUbicacion } from './evidencia-visual';
 import { FormularioActa } from './formulario-acta';
-import { CabeceraActa, DatosUbicacion, FotoActa, ResultadosActa } from './lectura-acta';
-
-const etapas = ['Resultados', 'Evidencia', 'Revisión'] as const;
+import { ResultadosActa } from './lectura-acta';
 
 export function EditorActa({ servicio, mesa, candidatos, inicial, salir, confirmar }: {
   servicio: ServicioActas; mesa: MesaElectoral; candidatos: Candidato[]; inicial: Borrador;
@@ -65,29 +65,36 @@ export function EditorActa({ servicio, mesa, candidatos, inicial, salir, confirm
   const foto = borrador.foto;
 
   return (
-    <Marco key={etapa}>
-      <Encabezado titulo={etapas[etapa]} detalle={`Paso ${etapa + 1} de ${etapas.length}`} />
-      <CabeceraActa mesa={mesa} dignidad={borrador.dignidad} />
+    <Marco key={etapa} ajustarTeclado={etapa === 0}
+      cabecera={<CabeceraRegistroActa mesa={mesa} dignidad={borrador.dignidad} />}>
+      <EtapasActa etapa={etapa} />
       {etapa === 0 && <FormularioActa inicial={borrador.valores} candidatos={candidatos} guardar={guardar} />}
       {etapa === 1 && (
         <>
-          <Tarjeta titulo="Fotografía y ubicación">
+          <Tarjeta titulo="Fotografía del acta" icono="camara">
             {captura ? <CapturaFoto aceptar={aceptar} /> : (
               <>
                 {foto ? (
                   <>
+                    <EstadoRegistro texto="Fotografía aceptada" tono="positivo" />
                     <FotoActa uri={servicio.archivos.uri(borrador.autorId, foto.archivo)} />
-                    <DatosUbicacion ubicacion={foto.ubicacion} />
                   </>
-                ) : <Texto>Toma una foto de la hoja completa. Su ubicación se registra al disparar.</Texto>}
-                <Boton titulo={foto ? 'Tomar otra fotografía' : 'Abrir cámara'} alPulsar={() => {
+                ) : (
+                  <>
+                    <Texto>Coloca el acta sobre una superficie plana, con buena luz y sin reflejos.</Texto>
+                    <EncuadreDocumento />
+                    <Texto>Incluye las cuatro esquinas de la hoja y comprueba que las cifras se lean con claridad.</Texto>
+                  </>
+                )}
+                <Boton titulo={foto ? 'Tomar otra fotografía' : 'Abrir cámara'} icono="camara" alPulsar={() => {
                   fijarMensaje(undefined);
                   fijarCaptura(true);
                 }} />
               </>
             )}
           </Tarjeta>
-          {!captura && <Boton titulo="Continuar a revisión" deshabilitado={!foto} alPulsar={() => avanzar(2)} />}
+          {!captura && <TarjetaUbicacion ubicacion={foto?.ubicacion} />}
+          {!captura && <Boton titulo="Continuar a revisión" icono="flecha" deshabilitado={!foto} alPulsar={() => avanzar(2)} />}
           {captura ? <Boton titulo="Cerrar cámara" variante="secundario" alPulsar={() => fijarCaptura(false)} />
             : <Boton titulo="Volver a resultados" variante="secundario" alPulsar={() => avanzar(0)} />}
           {!captura && <Boton titulo="Salir a mis actas" variante="secundario" alPulsar={salir} />}
@@ -95,19 +102,25 @@ export function EditorActa({ servicio, mesa, candidatos, inicial, salir, confirm
       )}
       {etapa === 2 && foto && (
         <>
-          <ResultadosActa candidatos={candidatos} datos={prepararEnvio(borrador.valores, candidatos)} />
-          <Tarjeta titulo="Evidencia aceptada">
+          <ResultadosActa candidatos={candidatos} datos={prepararEnvio(borrador.valores, candidatos)} validado />
+          <Tarjeta titulo="Evidencia aceptada" icono="camara">
             <FotoActa uri={servicio.archivos.uri(borrador.autorId, foto.archivo)} />
-            <DatosUbicacion ubicacion={foto.ubicacion} />
           </Tarjeta>
-          <Aviso mensaje={{ tipo: 'info', texto: 'Revisa la foto y los resultados. Después de confirmar, el acta queda bloqueada incluso sin conexión.' }} />
-          <Boton titulo="Confirmar definitivamente" tituloCarga="Guardando acta…" cargando={ocupado}
-            alPulsar={() => void confirmarActa()} />
-          <Boton titulo="Volver a evidencia" variante="secundario" deshabilitado={ocupado} alPulsar={() => avanzar(1)} />
-          <Boton titulo="Volver a resultados" variante="secundario" deshabilitado={ocupado} alPulsar={() => avanzar(0)} />
+          <TarjetaUbicacion ubicacion={foto.ubicacion} />
+          <Tarjeta titulo="Confirmación definitiva" icono="escudo">
+            <EstadoRegistro texto="Edición bloqueada después de confirmar" tono="alerta" />
+            <Texto>Revisa la fotografía y los resultados. Después de confirmar, el acta no podrá modificarse, incluso sin conexión.</Texto>
+            <Aviso mensaje={mensaje} />
+            <Boton titulo="Confirmar definitivamente" tituloCarga="Guardando acta…" cargando={ocupado}
+              icono="escudo" alPulsar={() => void confirmarActa()} />
+            <Boton titulo="Volver a resultados" variante="secundario" icono="atras"
+              deshabilitado={ocupado} alPulsar={() => avanzar(0)} />
+            <Boton titulo="Volver a evidencia" variante="secundario" icono="camara"
+              deshabilitado={ocupado} alPulsar={() => avanzar(1)} />
+          </Tarjeta>
         </>
       )}
-      <Aviso mensaje={mensaje} />
+      {etapa !== 2 && <Aviso mensaje={mensaje} />}
     </Marco>
   );
 }

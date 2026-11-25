@@ -4,7 +4,7 @@ import { Aviso, Boton, mensajeDeError, type Mensaje } from './interfaz';
 
 import { useAcceso } from './proveedor-acceso';
 
-export function CierreSesion() {
+export function CierreSesion({ acceso }: { acceso?: boolean }) {
   const { repositorio } = useAcceso();
   const [cerrando, fijarCerrando] = useState(false);
   const [mensaje, fijarMensaje] = useState<Mensaje>();
@@ -25,6 +25,7 @@ export function CierreSesion() {
     <>
       <Aviso mensaje={mensaje} />
       <Boton
+        acceso={acceso}
         titulo="Cerrar sesión"
         tituloCarga="Cerrando sesión…"
         cargando={cerrando}

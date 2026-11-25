@@ -38,10 +38,10 @@ export function filtrarEvento(evento: ErrorEvent): ErrorEvent {
   const pantalla = pantallas.find((valor) => valor === evento.tags?.pantalla);
   const rol = roles.find((valor) => valor === evento.tags?.rol);
   const operacion = operaciones.find((valor) => valor === evento.tags?.operacion);
-  const instalacion = evento.user?.id;
-  const idPseudonimo = typeof instalacion === 'string'
-    && /^[\da-f]{8}-[\da-f]{4}-4[\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/i.test(instalacion)
-    ? instalacion
+  const identificador = evento.user?.id;
+  const idPseudonimo = typeof identificador === 'string'
+    && /^(usuario-[\da-f]{64}|[\da-f]{8}-[\da-f]{4}-4[\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12})$/i.test(identificador)
+    ? identificador
     : undefined;
 
   return {

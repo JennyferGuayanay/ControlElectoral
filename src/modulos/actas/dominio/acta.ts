@@ -54,7 +54,7 @@ export const esquemaValores = z.object({
 });
 export type ValoresActa = z.infer<typeof esquemaValores>;
 
-function leerNumero(texto: string) {
+export function leerNumero(texto: string) {
   const limpio = texto.trim();
   if (!/^\d+$/.test(limpio)) return undefined;
   const numero = Number(limpio);

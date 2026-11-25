@@ -1,16 +1,16 @@
-import { Image } from 'expo-image';
 import { useIsFocused } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { AppState, Linking, StyleSheet, View } from 'react-native';
+import { AppState, Linking, StyleSheet } from 'react-native';
 import { Camera, CommonResolutions, useCameraDevice, useCameraPermission, usePhotoOutput } from 'react-native-vision-camera';
 
-import { Aviso, Boton, colores, mensajeDeError, type Mensaje } from '@/modulos/acceso/presentacion/interfaz';
+import { Aviso, Boton, mensajeDeError, type Mensaje } from '@/modulos/acceso/presentacion/interfaz';
 import { reportarFallo } from '@/modulos/monitoreo/infraestructura/sentry';
 import { Texto } from '@/modulos/operacion/presentacion/componentes';
 
 import type { UbicacionEvidencia } from '../dominio/acta';
 import { borrarTemporal, comprimirFoto, leerUbicacion, pedirUbicacion } from '../infraestructura/evidencia';
 import type { CapturaFotoProps } from './captura-foto';
+import { EncuadreDocumento, FotoActa, TarjetaUbicacion } from './evidencia-visual';
 
 export function CapturaFoto({ aceptar }: CapturaFotoProps) {
   const permiso = useCameraPermission();
@@ -84,26 +84,31 @@ export function CapturaFoto({ aceptar }: CapturaFotoProps) {
   if (!permiso.hasPermission) {
     return (
       <>
-        <Texto>La foto del acta se toma desde la cámara del dispositivo.</Texto>
-        <Boton titulo={permiso.canRequestPermission ? 'Autorizar cámara' : 'Abrir ajustes de cámara'}
-          alPulsar={() => { void (permiso.canRequestPermission ? permiso.requestPermission() : Linking.openSettings()).catch(errorCaptura); }} />
+        <Aviso mensaje={{ tipo: 'info', texto: permiso.canRequestPermission
+          ? 'Autoriza el uso de la cámara para fotografiar el acta física.'
+          : 'El acceso a la cámara está desactivado. Habilítalo en los ajustes del dispositivo.' }} />
         <Aviso mensaje={mensaje} />
+        <Boton titulo={permiso.canRequestPermission ? 'Autorizar cámara' : 'Abrir ajustes de cámara'}
+          icono="camara"
+          alPulsar={() => { void (permiso.canRequestPermission ? permiso.requestPermission() : Linking.openSettings()).catch(errorCaptura); }} />
       </>
     );
   }
-  if (!dispositivo) return <Texto>No se encontró una cámara posterior disponible.</Texto>;
+  if (!dispositivo) {
+    return <Aviso mensaje={{ tipo: 'error', texto: 'No se encontró una cámara posterior disponible en este dispositivo.' }} />;
+  }
 
   return (
     <>
       {foto ? (
         <>
-          <Image source={{ uri: foto.uri }} style={estilos.preview} contentFit="contain" cachePolicy="none"
-            accessibilityLabel="Vista previa de la fotografía del acta" />
+          <FotoActa uri={foto.uri} etiqueta="Vista previa de la fotografía del acta" />
           <Texto>Comprueba que se lean todas las cifras, las listas y los datos de la junta.</Texto>
-          <Texto>Precisión de ubicación: {foto.ubicacion.precision_metros.toFixed(1)} m</Texto>
-          {foto.ubicacion.ubicacion_simulada && <Aviso mensaje={{ tipo: 'info', texto: 'Android detectó una ubicación simulada. El indicador quedará en el registro.' }} />}
-          <Boton titulo="Aceptar fotografía" cargando={ocupada} alPulsar={() => void guardarFoto()} />
-          <Boton titulo="Repetir captura" deshabilitado={ocupada} variante="secundario" alPulsar={() => {
+          <TarjetaUbicacion ubicacion={foto.ubicacion} />
+          <Aviso mensaje={mensaje} />
+          <Boton titulo="Aceptar fotografía" tituloCarga="Guardando fotografía…" icono="actas"
+            cargando={ocupada} alPulsar={() => void guardarFoto()} />
+          <Boton titulo="Repetir captura" deshabilitado={ocupada} variante="secundario" icono="camara" alPulsar={() => {
             borrarTemporal(foto.uri);
             temporal.current = undefined;
             fijarLista(false);
@@ -114,25 +119,20 @@ export function CapturaFoto({ aceptar }: CapturaFotoProps) {
       ) : (
         <>
           <Texto>Coloca el acta plana y encuadra la hoja completa. {dispositivo.supportsFocusMetering ? 'Toca las cifras en la imagen para enfocar.' : 'Acerca el teléfono hasta que las cifras se vean nítidas.'}</Texto>
-          <View style={estilos.preview}>
+          <EncuadreDocumento>
             <Camera device={dispositivo} isActive={activa && enfocada} outputs={[salida]}
-              style={StyleSheet.absoluteFill} enableNativeTapToFocusGesture={dispositivo.supportsFocusMetering}
+              style={StyleSheet.absoluteFill} implementationMode="compatible"
+              enableNativeTapToFocusGesture={dispositivo.supportsFocusMetering}
               onPreviewStarted={() => fijarLista(true)} onPreviewStopped={() => fijarLista(false)}
               onError={(error) => { fijarLista(false); reportarFallo('fotografia-acta', error);
                 fijarMensaje({ tipo: 'error', texto: 'La cámara se interrumpió. Cierra y abre la captura para reintentar.' }); }} />
-            <View pointerEvents="none" style={estilos.guia} />
-          </View>
+          </EncuadreDocumento>
+          <Aviso mensaje={mensaje} />
           <Boton titulo="Tomar foto y registrar ubicación" tituloCarga="Capturando evidencia…" cargando={ocupada}
+            icono="camara"
             deshabilitado={!lista || !activa || !enfocada} alPulsar={() => void capturar()} />
         </>
       )}
-      <Aviso mensaje={mensaje} />
     </>
   );
 }
-
-const estilos = StyleSheet.create({
-  preview: { width: '100%', aspectRatio: 0.84, borderRadius: 14, overflow: 'hidden', backgroundColor: '#14243A' },
-  guia: { position: 'absolute', left: '8%', right: '8%', top: '8%', bottom: '8%', borderWidth: 2,
-    borderColor: colores.amarillo, borderRadius: 9 },
-});

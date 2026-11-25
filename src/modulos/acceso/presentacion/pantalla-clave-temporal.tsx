@@ -26,12 +26,13 @@ export default function PantallaClaveTemporal() {
   }
 
   return (
-    <Marco>
-      <Encabezado
-        titulo="Crea tu contraseña personal"
-        detalle="Cambia la contraseña temporal para continuar. Usa al menos 8 caracteres y elige una distinta."
-      />
-      <Panel>
+    <Marco portada="compacta">
+      <Panel acceso>
+        <Encabezado
+          compacto
+          titulo="Crea tu contraseña personal"
+          detalle="Cambia la contraseña temporal para continuar. Usa al menos 8 caracteres y elige una distinta."
+        />
         <Aviso mensaje={mensaje} />
         {guardada ? (
           <Aviso mensaje={{ tipo: 'exito', texto: 'Contraseña guardada. Estamos comprobando tu acceso.' }} />
@@ -39,7 +40,7 @@ export default function PantallaClaveTemporal() {
           <FormularioClave guardar={guardar} />
         )}
       </Panel>
-      <CierreSesion />
+      <CierreSesion acceso />
     </Marco>
   );
 }

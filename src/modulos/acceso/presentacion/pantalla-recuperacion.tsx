@@ -74,24 +74,27 @@ export default function PantallaRecuperacion() {
   }
 
   return (
-    <Marco>
-      {paso.tipo === 'correo' && (
-        <Encabezado
-          titulo="Recupera tu contraseña"
-          detalle="Escribe el correo de tu cuenta para solicitar un código de recuperación."
-        />
-      )}
-      {paso.tipo === 'codigo' && (
-        <Encabezado
-          titulo="Verifica el código"
-          detalle={`Ingresa el código de recuperación para ${paso.correo}.`}
-        />
-      )}
-      {paso.tipo === 'clave' && (
-        <Encabezado titulo="Elige una nueva contraseña" detalle="Usa al menos 8 caracteres y elige una distinta de la anterior." />
-      )}
-      {paso.tipo === 'fin' && <Encabezado titulo="Contraseña actualizada" />}
-      <Panel>
+    <Marco portada="compacta">
+      <Panel acceso>
+        {paso.tipo === 'correo' && (
+          <Encabezado
+            compacto
+            titulo="Recupera tu contraseña"
+            detalle="Escribe el correo de tu cuenta para solicitar un código de recuperación."
+          />
+        )}
+        {paso.tipo === 'codigo' && (
+          <Encabezado
+            compacto
+            titulo="Verifica el código"
+            detalle={`Ingresa el código de recuperación para ${paso.correo}.`}
+          />
+        )}
+        {paso.tipo === 'clave' && (
+          <Encabezado compacto titulo="Elige una nueva contraseña"
+            detalle="Usa al menos 8 caracteres y elige una distinta de la anterior." />
+        )}
+        {paso.tipo === 'fin' && <Encabezado compacto titulo="Contraseña actualizada" />}
         <Aviso mensaje={mensaje} />
         {paso.tipo === 'correo' && (
           <formulario.Subscribe selector={(estado) => estado.isSubmitting}>
@@ -101,6 +104,8 @@ export default function PantallaRecuperacion() {
                   {(campo) => (
                     <Campo
                       etiqueta="Correo electrónico"
+                      acceso
+                      icono="correo"
                       value={campo.state.value}
                       onBlur={campo.handleBlur}
                       onChangeText={campo.handleChange}
@@ -116,6 +121,8 @@ export default function PantallaRecuperacion() {
                   )}
                 </formulario.Field>
                 <Boton
+                  acceso
+                  icono="correo"
                   titulo="Enviar código"
                   tituloCarga="Enviando código…"
                   cargando={enviando}
@@ -129,6 +136,7 @@ export default function PantallaRecuperacion() {
           <>
             <FormularioCodigo verificar={verificar} bloqueado={operacion === 'enviar'} />
             <Boton
+              acceso
               titulo="Enviar otro código"
               tituloCarga="Enviando código…"
               variante="secundario"
@@ -137,6 +145,7 @@ export default function PantallaRecuperacion() {
               alPulsar={() => void enviar(paso.correo)}
             />
             <Boton
+              acceso
               titulo="Cambiar correo"
               variante="secundario"
               deshabilitado={!!operacion}
@@ -149,7 +158,7 @@ export default function PantallaRecuperacion() {
           <Aviso mensaje={{ tipo: 'exito', texto: 'Ya puedes iniciar sesión con tu nueva contraseña.' }} />
         )}
       </Panel>
-      <Enlace href="/ingresar" texto="Volver a iniciar sesión" reemplazar />
+      <Enlace href="/ingresar" texto="Volver a iniciar sesión" icono="atras" centrado reemplazar />
     </Marco>
   );
 }

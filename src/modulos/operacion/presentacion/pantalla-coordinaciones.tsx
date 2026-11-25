@@ -4,7 +4,7 @@ import { Boton } from '@/modulos/acceso/presentacion/interfaz';
 
 import type { RepositorioOperacion } from '../aplicacion/operacion';
 import { CambioVigencia } from './cambio-vigencia';
-import { EstadoConsulta, Pantalla, SelectorRecinto, useConsulta } from './componentes';
+import { EstadoConsulta, Pantalla, ResumenGestion, SelectorRecinto, Tarjeta, Texto, useConsulta } from './componentes';
 
 function Coordinacion({ repositorio, recintoId }: { repositorio: RepositorioOperacion; recintoId: number }) {
   const historial = useConsulta(['coordinaciones', recintoId], () => repositorio.coordinaciones(recintoId));
@@ -28,13 +28,20 @@ export function PantallaCoordinaciones({ repositorio }: { repositorio: Repositor
   const [recintoId, fijarRecinto] = useState<number | null>(null);
   const recintos = useConsulta(['recintos'], repositorio.recintos);
   const lista = recintos.data ?? [];
+  const recinto = lista.find(({ id }) => id === recintoId);
 
   return (
-    <Pantalla titulo="Coordinación de recintos" detalle="Consulta el responsable actual y sus períodos de vigencia." inicio="/provincial">
+    <Pantalla titulo="Coordinación de recintos" detalle="Responsables actuales y períodos de vigencia."
+      inicio="/provincial" iconoGestion="coordinacion">
       <EstadoConsulta consulta={recintos}>
-        <SelectorRecinto recintos={lista} recintoId={recintoId} elegir={fijarRecinto} />
-        {recintoId !== null && lista.some(({ id }) => id === recintoId) && (
-          <Coordinacion key={recintoId} repositorio={repositorio} recintoId={recintoId} />
+        <Tarjeta titulo="Recinto electoral" icono="ubicacion">
+          <ResumenGestion datos={[{ etiqueta: 'Recintos disponibles', cantidad: lista.length, icono: 'territorio', tono: 'neutro' }]} />
+          <SelectorRecinto recintos={lista} recintoId={recintoId} elegir={fijarRecinto} />
+          {recinto?.zona && <Texto>Zona {recinto.zona}</Texto>}
+          {recinto?.direccion && <Texto>{recinto.direccion}</Texto>}
+        </Tarjeta>
+        {recinto && (
+          <Coordinacion key={recinto.id} repositorio={repositorio} recintoId={recinto.id} />
         )}
       </EstadoConsulta>
     </Pantalla>

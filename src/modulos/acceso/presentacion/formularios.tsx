@@ -21,6 +21,8 @@ export function FormularioCodigo({
               {(campo) => (
                 <Campo
                   etiqueta="Código de verificación"
+                  acceso
+                  icono="codigo"
                   value={campo.state.value}
                   onBlur={campo.handleBlur}
                   onChangeText={(texto) => campo.handleChange(texto.replace(/[^0-9]/g, '').slice(0, 10))}
@@ -35,7 +37,10 @@ export function FormularioCodigo({
               )}
             </formulario.Field>
             <Boton
-              titulo="Verificar código"
+              acceso
+              titulo="Verificar código OTP"
+              icono="codigo"
+              variante="secundario"
               tituloCarga="Verificando…"
               cargando={verificando}
               deshabilitado={bloqueado}
@@ -63,6 +68,7 @@ export function FormularioClave({ guardar }: { guardar(clave: string): Promise<v
             {(campo) => (
               <Campo
                 etiqueta="Nueva contraseña"
+                acceso
                 value={campo.state.value}
                 onBlur={campo.handleBlur}
                 onChangeText={campo.handleChange}
@@ -79,6 +85,7 @@ export function FormularioClave({ guardar }: { guardar(clave: string): Promise<v
             {(campo) => (
               <Campo
                 etiqueta="Repite la nueva contraseña"
+                acceso
                 value={campo.state.value}
                 onBlur={campo.handleBlur}
                 onChangeText={campo.handleChange}
@@ -94,6 +101,8 @@ export function FormularioClave({ guardar }: { guardar(clave: string): Promise<v
             )}
           </formulario.Field>
           <Boton
+            acceso
+            icono="clave"
             titulo="Guardar contraseña"
             tituloCarga="Guardando…"
             cargando={guardando}

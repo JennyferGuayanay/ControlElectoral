@@ -12,7 +12,7 @@ export default function Seguimiento() {
   if (estado.tipo !== 'habilitado' || estado.perfil.rol_codigo !== 'provincial') return null;
 
   return (
-    <PantallaSeguimiento key={`${estado.perfil.usuario_id}:${id}:${dignidad}`} autor={estado.perfil.usuario_id} provincia="Toda la provincia"
+    <PantallaSeguimiento key={`${estado.perfil.usuario_id}:${id}:${dignidad}`} autor={estado.perfil.usuario_id}
       recintoInicial={Number.isSafeInteger(id) && id > 0 ? id : null}
       dignidadInicial={dignidad === 'prefectura' ? 'prefectura' : 'alcaldia'}
       repositorio={repositorioSeguimiento} territorio={repositorioOperacion} />

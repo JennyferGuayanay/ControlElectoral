@@ -14,12 +14,13 @@ function RutasProtegidas() {
   const { estado } = useAcceso();
   const segmentos = useSegments();
   const rol = estado.tipo === 'habilitado' ? estado.perfil.rol_codigo : null;
+  const usuarioId = estado.tipo === 'habilitado' ? estado.perfil.usuario_id : null;
   const enAcceso = estado.tipo === 'sin-sesion' || estado.tipo === 'correo' || estado.tipo === 'clave-temporal';
   const pantalla = obtenerPantalla(segmentos.at(-1));
 
   useEffect(() => {
-    fijarContexto(pantalla, rol ?? 'sin-sesion');
-  }, [pantalla, rol]);
+    fijarContexto(pantalla, rol ?? 'sin-sesion', usuarioId);
+  }, [pantalla, rol, usuarioId]);
 
   return (
     <Stack screenOptions={{ headerShown: false }}>

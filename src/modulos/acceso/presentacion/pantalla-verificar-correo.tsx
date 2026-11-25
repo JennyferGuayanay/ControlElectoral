@@ -42,12 +42,15 @@ export default function PantallaVerificarCorreo() {
   }
 
   return (
-    <Marco>
-      <Encabezado titulo="Verifica tu correo" detalle={`Envía un código a ${correo} para confirmar que el correo te pertenece.`} />
-      <Panel>
+    <Marco portada="compacta">
+      <Panel acceso>
+        <Encabezado compacto titulo="Verifica tu correo"
+          detalle={`Envía un código a ${correo} para confirmar que el correo te pertenece.`} />
         <Aviso mensaje={mensaje} />
         {enviado && <FormularioCodigo verificar={verificar} bloqueado={operacion === 'enviar'} />}
         <Boton
+          acceso
+          icono="correo"
           titulo={enviado ? 'Enviar otro código' : 'Enviar código'}
           tituloCarga="Enviando código…"
           variante={enviado ? 'secundario' : 'principal'}
@@ -56,7 +59,7 @@ export default function PantallaVerificarCorreo() {
           alPulsar={() => void enviar()}
         />
       </Panel>
-      <CierreSesion />
+      <CierreSesion acceso />
     </Marco>
   );
 }

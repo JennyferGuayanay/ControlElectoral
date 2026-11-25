@@ -13,7 +13,7 @@ export default function AnimacionExito() {
 
   return (
     <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-      <LottieView autoPlay loop={false} source={marcaExito} style={{ width: 40, height: 40 }} />
+      <LottieView autoPlay loop={false} speed={0.9} source={marcaExito} style={{ width: 40, height: 40 }} />
     </View>
   );
 }

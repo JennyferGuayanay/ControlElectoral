@@ -2,11 +2,14 @@ import { useForm } from '@tanstack/react-form';
 import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
 
-import { Aviso, Boton, Campo, Enlace, errorDeCampo, mensajeDeError, type Mensaje } from '@/modulos/acceso/presentacion/interfaz';
+import { Aviso, Boton, Enlace, errorDeCampo, mensajeDeError, type Mensaje } from '@/modulos/acceso/presentacion/interfaz';
 
 import type { RepositorioOperacion } from '../aplicacion/operacion';
 import { coincideBusqueda, esquemaRecintoNuevo, rotuloMesa, type Parroquia, type RecintoNuevo } from '../dominio/operacion';
-import { DetalleMesa, EstadoConsulta, Lista, Opciones, Pantalla, Tarjeta, Texto, useActualizar, useConsulta } from './componentes';
+import {
+  CampoGestion, DetalleMesa, EstadoConsulta, EstadoRegistro, Lista, Opciones, Pantalla, ResumenGestion, Tarjeta, Texto,
+  useActualizar, useConsulta,
+} from './componentes';
 
 function rotuloParroquia(parroquia: Parroquia) {
   return parroquia.canton ? `${parroquia.nombre} · ${parroquia.canton.nombre}` : parroquia.nombre;
@@ -25,7 +28,7 @@ function FormularioRecinto({
   });
 
   return (
-    <Tarjeta titulo="Nuevo recinto">
+    <Tarjeta titulo="Nuevo recinto" icono="ubicacion">
       <Texto>Parroquia del recinto</Texto>
       <formulario.Field name="parroquiaId">
         {(campo) => (
@@ -40,7 +43,7 @@ function FormularioRecinto({
         ['nombre', 'Nombre del recinto'], ['zona', 'Zona (opcional)'], ['direccion', 'Dirección (opcional)'],
       ] as const).map(([name, etiqueta]) => (
         <formulario.Field key={name} name={name}>
-          {(campo) => <Campo etiqueta={etiqueta} value={campo.state.value} onBlur={campo.handleBlur}
+          {(campo) => <CampoGestion etiqueta={etiqueta} value={campo.state.value} onBlur={campo.handleBlur}
             onChangeText={campo.handleChange} error={errorDeCampo(campo.state.meta.errors)} />}
         </formulario.Field>
       ))}
@@ -56,16 +59,17 @@ function MesasTerritorio({ repositorio, recintoId }: { repositorio: RepositorioO
   const [buscar, fijarBuscar] = useState('');
   const mesas = useConsulta(['mesas', recintoId], () => repositorio.mesas(recintoId));
   return (
-    <Tarjeta titulo="Mesas del recinto">
+    <Tarjeta titulo="Mesas del recinto" icono="mesa">
       <EstadoConsulta consulta={mesas}>
-        <Campo etiqueta="Buscar mesa" value={buscar} onChangeText={fijarBuscar} />
+        <EstadoRegistro texto={`Total de mesas del recinto: ${mesas.data?.length ?? 0}`} tono="neutro" />
+        <CampoGestion etiqueta="Buscar mesa" value={buscar} onChangeText={fijarBuscar} />
         <Lista datos={(mesas.data ?? []).filter((mesa) => coincideBusqueda(buscar, rotuloMesa(mesa)))}
           clave={(mesa) => mesa.id} vacio="No hay mesas que mostrar."
           mostrar={(mesa) => (
-            <>
+            <Tarjeta titulo={`Mesa ${mesa.numero_jrv_cne ?? mesa.numero}`} icono="mesa">
               <DetalleMesa mesa={mesa} />
               <Enlace href={{ pathname: '/actas-provinciales', params: { mesa: String(mesa.id) } }} texto="Consultar actas de esta mesa" />
-            </>
+            </Tarjeta>
           )} />
       </EstadoConsulta>
     </Tarjeta>
@@ -97,37 +101,56 @@ export function PantallaTerritorio({ repositorio }: { repositorio: RepositorioOp
   }
 
   const sectores = parroquias.data ?? [];
+  const cantones = new Map<string | null, Parroquia[]>();
+  for (const parroquia of sectores) {
+    const canton = parroquia.canton?.nombre ?? null;
+    const grupo = cantones.get(canton);
+    if (grupo) grupo.push(parroquia);
+    else cantones.set(canton, [parroquia]);
+  }
   const porId = new Map(sectores.map((parroquia) => [parroquia.id, parroquia]));
   const visibles = (recintos.data ?? []).filter((recinto) =>
     (!parroquiaId || recinto.parroquia_id === parroquiaId)
     && coincideBusqueda(buscar, recinto.nombre, recinto.zona, recinto.direccion, porId.get(recinto.parroquia_id)?.nombre));
 
   return (
-    <Pantalla titulo="Territorio electoral" detalle="Consulta parroquias, recintos y mesas de tu provincia." inicio="/provincial">
+    <Pantalla titulo="Territorio electoral" detalle="Cantones, parroquias, recintos y mesas bajo tu jurisdicción."
+      inicio="/provincial" iconoGestion="territorio">
       <EstadoConsulta consulta={parroquias}>
         <EstadoConsulta consulta={recintos}>
+          <ResumenGestion datos={[
+            { etiqueta: 'Cantones', cantidad: cantones.size - Number(cantones.has(null)), icono: 'territorio', tono: 'alerta' },
+            { etiqueta: 'Parroquias', cantidad: sectores.length, icono: 'ubicacion', tono: 'neutro' },
+            { etiqueta: 'Recintos', cantidad: recintos.data?.length ?? 0, icono: 'actas', tono: 'positivo' },
+          ]} />
           <Boton titulo={nuevo ? 'Cerrar formulario' : 'Agregar recinto'} alPulsar={() => {
             fijarNuevo(!nuevo);
             fijarMensaje(undefined);
-          }} deshabilitado={!sectores.length || alta.isPending} />
+          }} deshabilitado={!sectores.length || alta.isPending} icono="ubicacion" />
           {nuevo && <FormularioRecinto parroquias={sectores} inicial={parroquiaId || null} guardar={guardar} />}
           <Aviso mensaje={mensaje} />
-          <Tarjeta titulo="Parroquias">
-            <Opciones opciones={[{ id: 0, texto: 'Todas' }, ...sectores.map((item) => ({ id: item.id, texto: rotuloParroquia(item) }))]}
+          <Tarjeta titulo="Parroquias" icono="territorio">
+            <Opciones opciones={[{ id: 0, texto: 'Todas' }]}
               valor={parroquiaId} elegir={(id) => { fijarParroquiaId(id); fijarRecintoAbierto(null); }} />
+            {[...cantones].map(([canton, grupo]) => (
+              <Tarjeta key={canton ?? ''} titulo={canton ? `Cantón ${canton}` : 'Parroquias sin cantón visible'} icono="ubicacion">
+                <Opciones opciones={grupo.map((item) => ({ id: item.id, texto: rotuloParroquia(item) }))}
+                  valor={parroquiaId} elegir={(id) => { fijarParroquiaId(id); fijarRecintoAbierto(null); }} />
+              </Tarjeta>
+            ))}
           </Tarjeta>
-          <Campo etiqueta="Buscar en recintos" value={buscar} onChangeText={fijarBuscar} />
+          <CampoGestion etiqueta="Buscar en recintos" value={buscar} onChangeText={fijarBuscar} />
           <Texto>{visibles.length} recintos encontrados</Texto>
           <Lista datos={visibles} clave={(item) => item.id} vacio="No hay recintos con los filtros seleccionados."
             mostrar={(recinto) => {
               const parroquia = porId.get(recinto.parroquia_id);
               const abierto = recintoAbierto === recinto.id;
               return (
-                <Tarjeta titulo={recinto.nombre}>
+                <Tarjeta titulo={recinto.nombre} icono="ubicacion">
                   {parroquia && <Texto>{rotuloParroquia(parroquia)}</Texto>}
                   {!!recinto.zona && <Texto>Zona {recinto.zona}</Texto>}
                   {!!recinto.direccion && <Texto>{recinto.direccion}</Texto>}
-                  <Boton titulo={abierto ? 'Ocultar mesas' : 'Consultar mesas'} variante="secundario"
+                  <Boton titulo={abierto ? 'Ocultar mesas' : 'Consultar mesas'} variante="secundario" icono="mesa"
                     alPulsar={() => fijarRecintoAbierto(abierto ? null : recinto.id)} />
                   {abierto && <MesasTerritorio repositorio={repositorio} recintoId={recinto.id} />}
                 </Tarjeta>

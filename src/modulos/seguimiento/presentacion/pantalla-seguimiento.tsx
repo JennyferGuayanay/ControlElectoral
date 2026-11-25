@@ -1,13 +1,16 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 
-import { Aviso, Boton, type Mensaje } from '@/modulos/acceso/presentacion/interfaz';
+import AnimacionCarga from '@/compartido/presentacion/animacion-carga';
+import { Aviso, Boton, colores, Enlace, Marco, type Mensaje } from '@/modulos/acceso/presentacion/interfaz';
 import { nombreDignidad, type Dignidad } from '@/modulos/actas/dominio/acta';
 import type { RepositorioOperacion } from '@/modulos/operacion/aplicacion/operacion';
-import { EstadoConsulta, fechaLocal, Lista, Opciones, Pantalla, SelectorRecinto, Tarjeta, Texto } from '@/modulos/operacion/presentacion/componentes';
+import { EstadoConsulta, EstadoRegistro, fechaLocal, Lista, Opciones, SelectorRecinto, Tarjeta, Texto } from '@/modulos/operacion/presentacion/componentes';
 
 import { consultarResultados, type AlcanceResultados, type RepositorioSeguimiento } from '../aplicacion/seguimiento';
 import { resumirAvance } from '../dominio/seguimiento';
+import { CabeceraSeguimiento } from './cabecera-seguimiento';
 import { MesasSeguimiento } from './mesas-seguimiento';
 import { BarraAvance, numeroLocal, ResumenSeguimiento } from './resumen-seguimiento';
 import { ResultadosSeguimiento } from './resultados-seguimiento';
@@ -20,8 +23,8 @@ const estadoRed: Record<ReturnType<typeof useConexionSeguimiento>, Mensaje> = {
   'sin-conexion': { tipo: 'info', texto: 'Sin conexión. Se muestran los últimos datos disponibles.' },
 };
 
-export function PantallaSeguimiento({ autor, provincia, recintoInicial, dignidadInicial, repositorio, territorio }: {
-  autor: string; provincia: string; recintoInicial: number | null; dignidadInicial: Dignidad;
+export function PantallaSeguimiento({ autor, recintoInicial, dignidadInicial, repositorio, territorio }: {
+  autor: string; recintoInicial: number | null; dignidadInicial: Dignidad;
   repositorio: RepositorioSeguimiento; territorio: RepositorioOperacion;
 }) {
   const conexion = useConexionSeguimiento();
@@ -60,7 +63,22 @@ export function PantallaSeguimiento({ autor, provincia, recintoInicial, dignidad
   const ids = new Set(recintos.map(({ id }) => id));
   const avanceFiltrado = (avance.data ?? []).filter((dato) =>
     recinto ? dato.recinto_id === recinto.id : parroquia ? ids.has(dato.recinto_id) : true);
-  const ambito = recinto?.nombre ?? parroquia?.nombre ?? provincia;
+  const parroquiasPorId = new Map(catalogo.data?.parroquias.map((dato) => [dato.id, dato]));
+  const parroquiaRecinto = recinto ? parroquiasPorId.get(recinto.parroquia_id) : undefined;
+  const cantonesConRecintos = new Set<string>();
+  for (const dato of recintos) {
+    const nombre = parroquiasPorId.get(dato.parroquia_id)?.canton?.nombre;
+    if (nombre) cantonesConRecintos.add(nombre);
+  }
+  const ambito = recinto?.nombre ?? parroquia?.nombre ?? 'Recintos de la jurisdicción';
+  const detalleAmbito = recinto
+    ? [parroquiaRecinto && `Parroquia ${parroquiaRecinto.nombre}`, parroquiaRecinto?.canton && `Cantón ${parroquiaRecinto.canton.nombre}`]
+      .filter(Boolean).join(' · ')
+    : parroquia
+      ? parroquia.canton && `Parroquia · Cantón ${parroquia.canton.nombre}`
+      : cantonesConRecintos.size === 1
+        ? `Recintos cargados del cantón ${[...cantonesConRecintos][0]}`
+        : undefined;
   const ultima = avance.dataUpdatedAt && resultados.dataUpdatedAt
     ? Math.min(avance.dataUpdatedAt, resultados.dataUpdatedAt) : avance.dataUpdatedAt;
   const cargando = avance.isFetching || catalogo.isFetching || resultados.isFetching;
@@ -70,20 +88,30 @@ export function PantallaSeguimiento({ autor, provincia, recintoInicial, dignidad
   }
 
   return (
-    <Pantalla key={recinto?.id ?? 'general'} titulo="Seguimiento electoral" inicio="/provincial">
-      <Aviso mensaje={{ tipo: 'info', texto: 'Conteo preliminar · Resultados no oficiales del CNE.' }} />
-      <Aviso mensaje={estadoRed[conexion]} />
-      {!!ultima && <Texto>Última actualización: {fechaLocal(new Date(ultima).toISOString())}</Texto>}
-      <Boton titulo="Actualizar tablero" tituloCarga="Actualizando…" variante="secundario" cargando={cargando}
-        deshabilitado={!conectado} alPulsar={actualizar} />
-      {!conectado && !catalogo.data ? <Texto>Conéctate para cargar el tablero provincial.</Texto> : (
+    <Marco key={recinto?.id ?? 'general'}
+      cabecera={<CabeceraSeguimiento ambito={ambito} detalle={detalleAmbito || undefined} />}>
+      <View style={estilos.acciones}>
+        <View style={estilos.volver}><Enlace href="/provincial" texto="Volver al inicio" icono="atras" centrado reemplazar /></View>
+        <Boton titulo="Actualizar tablero" tituloCarga="Actualizando…" variante="secundario" cargando={cargando}
+          style={estilos.actualizar} deshabilitado={!conectado} alPulsar={actualizar} />
+      </View>
+      <View style={estilos.actualizacion}>
+        <Aviso mensaje={estadoRed[conexion]} />
+        {!!ultima && <Texto>Última actualización: {fechaLocal(new Date(ultima).toISOString())}</Texto>}
+      </View>
+      {!conectado && !catalogo.data ? <Texto>Conéctate para cargar el tablero de tu jurisdicción.</Texto> : (
         <EstadoConsulta consulta={{
           isPending: !catalogo.data && catalogo.isPending, isError: !catalogo.data && catalogo.isError, refetch: catalogo.refetch,
-        }}>
-          <Tarjeta titulo="Filtros del tablero">
-            <Texto destacado>Dignidad de los resultados</Texto>
-            <Opciones<Dignidad> valor={dignidad} elegir={fijarDignidad}
-              opciones={[{ id: 'alcaldia', texto: nombreDignidad.alcaldia }, { id: 'prefectura', texto: nombreDignidad.prefectura }]} />
+        }} ilustracionCarga={<AnimacionCarga />}>
+          <EstadoConsulta consulta={{
+            isPending: !avance.data && avance.isPending && conectado,
+            isError: !avance.data && avance.isError && conectado, refetch: avance.refetch,
+          }} ilustracionCarga={<AnimacionCarga />}>
+            {avance.isError && avance.data && <Texto>No se pudo actualizar el avance. Se muestran los últimos datos.</Texto>}
+            {avance.data ? <ResumenSeguimiento recintos={avanceFiltrado} />
+              : <Texto>Conéctate para consultar el avance.</Texto>}
+          </EstadoConsulta>
+          <Tarjeta titulo="Filtros del tablero" icono="ubicacion">
             <Texto destacado>Parroquia</Texto>
             <Opciones<number> valor={parroquiaId} elegir={(id) => { fijarParroquia(id); fijarRecinto(null); }}
               opciones={[{ id: 0, texto: 'Todas las parroquias' }, ...(catalogo.data?.parroquias ?? [])
@@ -91,18 +119,15 @@ export function PantallaSeguimiento({ autor, provincia, recintoInicial, dignidad
             <SelectorRecinto recintos={recintos} recintoId={recinto?.id ?? null} elegir={fijarRecinto} />
             {recinto && <Boton titulo="Ver todos los recintos" variante="secundario" alPulsar={() => fijarRecinto(null)} />}
           </Tarjeta>
-          <EstadoConsulta consulta={{
-            isPending: !avance.data && avance.isPending && conectado,
-            isError: !avance.data && avance.isError && conectado, refetch: avance.refetch,
-          }}>
-            {avance.isError && avance.data && <Texto>No se pudo actualizar el avance. Se muestran los últimos datos.</Texto>}
-            {avance.data ? <ResumenSeguimiento recintos={avanceFiltrado} ambito={ambito} />
-              : <Texto>Conéctate para consultar el avance.</Texto>}
-          </EstadoConsulta>
+          <Tarjeta titulo="Resultados electorales" icono="seguimiento">
+            <Texto>Conteo preliminar · Resultados no oficiales del CNE.</Texto>
+            <Opciones<Dignidad> valor={dignidad} elegir={fijarDignidad}
+              opciones={[{ id: 'alcaldia', texto: nombreDignidad.alcaldia }, { id: 'prefectura', texto: nombreDignidad.prefectura }]} />
+          </Tarjeta>
           <EstadoConsulta consulta={{
             isPending: !resultados.data && resultados.isPending && conectado,
             isError: !resultados.data && resultados.isError && conectado, refetch: resultados.refetch,
-          }}>
+          }} ilustracionCarga={<AnimacionCarga />}>
             {resultados.isError && resultados.data && <Texto>No se pudieron actualizar los votos. Se muestran los últimos datos.</Texto>}
             {resultados.data ? (
               <ResultadosSeguimiento totales={resultados.data} cantones={catalogo.data?.cantones ?? []} />
@@ -112,20 +137,30 @@ export function PantallaSeguimiento({ autor, provincia, recintoInicial, dignidad
             <MesasSeguimiento key={recinto.id} autor={autor} recintoId={recinto.id} dignidad={dignidad}
               conectado={conectado} repositorio={repositorio} territorio={territorio} />
           ) : (
-            <Tarjeta titulo="Seguimiento por recinto">
+            <Tarjeta titulo="Seguimiento por recinto" icono="territorio">
+              <EstadoRegistro texto={`${numeroLocal.format(recintos.length)} recintos en la selección`} tono="neutro" />
               <Lista key={parroquiaId} datos={recintos} clave={(dato) => dato.id} vacio="No hay recintos en esta selección."
                 mostrar={(dato) => {
                   const fila = avanceFiltrado.find(({ recinto_id }) => recinto_id === dato.id);
                   const resumen = fila ? resumirAvance([fila]) : null;
+                  const completo = !!resumen?.esperadas && resumen.actas === resumen.esperadas;
                   return (
-                    <Tarjeta titulo={dato.nombre}>
-                      {resumen && (
+                    <Tarjeta titulo={dato.nombre} icono="ubicacion">
+                      {resumen ? (
                         <>
+                          <EstadoRegistro texto={!resumen.esperadas ? 'Sin mesas' : completo ? 'Completo' : resumen.actas ? 'Parcial' : 'Pendiente'}
+                            tono={!resumen.esperadas ? 'neutro' : completo ? 'positivo' : 'alerta'} />
+                          <Texto>{numeroLocal.format(resumen.mesas)} {resumen.mesas === 1 ? 'mesa' : 'mesas'}</Texto>
                           <Texto>{numeroLocal.format(resumen.actas)} de {numeroLocal.format(resumen.esperadas)} actas</Texto>
-                          <BarraAvance porcentaje={resumen.porcentaje} />
+                          {!!resumen.esperadas && (
+                            <View style={estilos.avanceRecinto}>
+                              <Texto destacado>{numeroLocal.format(resumen.porcentaje)} % de avance</Texto>
+                              <BarraAvance porcentaje={resumen.porcentaje} />
+                            </View>
+                          )}
                         </>
-                      )}
-                      <Boton titulo="Ver seguimiento del recinto" variante="secundario" alPulsar={() => fijarRecinto(dato.id)} />
+                      ) : <EstadoRegistro texto="Avance no disponible" tono="neutro" />}
+                      <Boton titulo="Ver seguimiento del recinto" variante="secundario" icono="siguiente" alPulsar={() => fijarRecinto(dato.id)} />
                     </Tarjeta>
                   );
                 }} />
@@ -133,6 +168,14 @@ export function PantallaSeguimiento({ autor, provincia, recintoInicial, dignidad
           )}
         </EstadoConsulta>
       )}
-    </Pantalla>
+    </Marco>
   );
 }
+
+const estilos = StyleSheet.create({
+  acciones: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  volver: { alignSelf: 'flex-start', backgroundColor: colores.azulSuave, borderRadius: 13 },
+  actualizar: { paddingHorizontal: 8 },
+  actualizacion: { gap: 7 },
+  avanceRecinto: { backgroundColor: '#EAF2FF', borderRadius: 10, padding: 9, gap: 7 },
+});

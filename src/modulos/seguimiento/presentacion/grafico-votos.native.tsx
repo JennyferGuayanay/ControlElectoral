@@ -15,13 +15,13 @@ export function GraficoVotos({ totales }: { totales: TotalCandidato[] }) {
   return (
     <View accessible={false} importantForAccessibility="no-hide-descendants" style={estilos.grafico}>
       <CartesianChart data={datos} xKey="orden" yKeys={['votos']} domain={{ y: [0, maximo] }}
-        padding={{ top: 14, bottom: 12, left: 10, right: 10 }} domainPadding={{ left: 22, right: 22 }}>
+        padding={{ top: 14, bottom: 12, left: 12, right: 12 }} domainPadding={{ left: 22, right: 22 }}>
         {({ points, chartBounds, yScale }) => (
           <>
             {rejilla.map((fraccion) => {
               const y = yScale(maximo * fraccion);
               return <Line key={fraccion} p1={vec(chartBounds.left, y)} p2={vec(chartBounds.right, y)}
-                color="#DDE6F0" strokeWidth={1} />;
+                color="#C9D8ED" strokeWidth={1} />;
             })}
             {points.votos.map((punto, indice) => (
               <Bar key={totales[indice].candidato_id} points={[punto]} chartBounds={chartBounds}
@@ -35,4 +35,6 @@ export function GraficoVotos({ totales }: { totales: TotalCandidato[] }) {
   );
 }
 
-const estilos = StyleSheet.create({ grafico: { height: 184, backgroundColor: '#F5F8FD', borderRadius: 14 } });
+const estilos = StyleSheet.create({
+  grafico: { height: 184, backgroundColor: '#F0F5FE', borderRadius: 14, borderWidth: 1, borderColor: '#CCDAEF' },
+});

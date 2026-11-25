@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { Href } from 'expo-router';
 
 import { Boton } from '@/modulos/acceso/presentacion/interfaz';
-import { EstadoConsulta, Pantalla, Tarjeta, Texto, useConsulta } from '@/modulos/operacion/presentacion/componentes';
+import { EstadoConsulta, EstadoRegistro, Pantalla, Tarjeta, Texto, useConsulta } from '@/modulos/operacion/presentacion/componentes';
 
 import type { RepositorioActas } from '../aplicacion/actas';
 import { dignidades, nombreDignidad, type Dignidad } from '../dominio/acta';
@@ -16,8 +16,8 @@ export function PantallaConsultarActas({ repositorio, mesaId, inicio, etiquetaVo
   const contexto = consulta.data;
 
   return (
-    <Pantalla titulo="Actas de la mesa" inicio={inicio} etiquetaVolver={etiquetaVolver}>
-      <Boton titulo="Actualizar actas de la mesa" variante="secundario" cargando={consulta.isFetching}
+    <Pantalla titulo="Actas de la mesa" inicio={inicio} etiquetaVolver={etiquetaVolver} iconoGestion="actas">
+      <Boton titulo="Actualizar actas de la mesa" variante="secundario" icono="sincronizacion" cargando={consulta.isFetching}
         alPulsar={() => { void consulta.refetch(); }} />
       <EstadoConsulta consulta={consulta}>
         {contexto ? (
@@ -28,14 +28,15 @@ export function PantallaConsultarActas({ repositorio, mesaId, inicio, etiquetaVo
               const candidatos = contexto.contiendas.find((contienda) => contienda.dignidad === dignidad)?.candidatos ?? [];
               const expandida = abierta === dignidad;
               return (
-                <Tarjeta key={dignidad} titulo={nombreDignidad[dignidad]}>
+                <Tarjeta key={dignidad} titulo={nombreDignidad[dignidad]} icono="actas">
+                  <EstadoRegistro texto={acta ? 'Acta recibida' : 'Sin acta registrada'} tono={acta ? 'positivo' : 'neutro'} />
                   {acta ? (
                     <>
                       <Boton titulo={expandida ? 'Cerrar detalle' : `Ver acta de ${nombreDignidad[dignidad]}`}
-                        variante="secundario" alPulsar={() => fijarAbierta(expandida ? undefined : dignidad)} />
+                        variante="secundario" icono="ojo" alPulsar={() => fijarAbierta(expandida ? undefined : dignidad)} />
                       {expandida && <DetallePublicado id={acta.id} candidatos={candidatos} repositorio={repositorio} />}
                     </>
-                  ) : <Texto>Todavía sin registrar.</Texto>}
+                  ) : null}
                 </Tarjeta>
               );
             })}
