@@ -63,3 +63,15 @@ export function crearSupabaseRecuperacion(): SupabaseClient {
     },
   });
 }
+
+export function crearSupabaseEnvio(token: string, signal: AbortSignal): SupabaseClient {
+  const { url, clave } = configuracionSupabase();
+  // El JWT de este intento queda fijo aunque el cliente principal cambie de sesión.
+  return createClient(url, clave, {
+    accessToken: async () => token,
+    global: { fetch: async (entrada, opciones) => {
+      if (signal.aborted) throw new Error('Envío cancelado.');
+      return fetch(entrada, { ...opciones, signal });
+    } },
+  });
+}

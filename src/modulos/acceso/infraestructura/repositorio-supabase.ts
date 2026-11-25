@@ -5,6 +5,7 @@ import { crearSupabaseRecuperacion, obtenerSupabase } from '@/infraestructura/su
 
 import type { RecuperacionVerificada, RepositorioAcceso, Sesion } from '../aplicacion/acceso';
 import { esquemaPerfil, type Perfil } from '../dominio/acceso';
+import { borrarPerfilSinConexion, guardarPerfilSinConexion, leerPerfilSinConexion } from './perfil-sin-conexion';
 
 const camposPerfil = 'usuario_id,nombres,apellidos,correo,provincia_id,rol_codigo,activo,cambio_clave_pendiente,correo_verificado_en';
 
@@ -34,7 +35,7 @@ function fallo(error: ErrorSupabase, alternativa: string) {
 }
 
 function identidad(sesion: Session | null): Sesion | null {
-  return sesion ? { usuarioId: sesion.user.id, token: sesion.access_token } : null;
+  return sesion ? { usuarioId: sesion.user.id, token: sesion.access_token, expiraEn: (sesion.expires_at ?? 0) * 1_000 } : null;
 }
 
 async function consultarPerfil(cliente: SupabaseClient, usuarioId: string): Promise<Perfil | null> {
@@ -97,6 +98,7 @@ async function iniciarSesion(correo: string, clave: string) {
 async function cerrarSesion() {
   const { error } = await obtenerSupabase().auth.signOut({ scope: 'local' });
   if (error) throw fallo(error, 'No se pudo cerrar la sesión. Revisa tu conexión e inténtalo de nuevo.');
+  await borrarPerfilSinConexion().catch(() => undefined);
 }
 
 async function enviarCodigoCorreo(correo: string) {
@@ -192,6 +194,8 @@ async function consultarAmbito(perfil: Perfil): Promise<string[]> {
 }
 
 export const repositorioAcceso: RepositorioAcceso = {
+  leerPerfilSinConexion,
+  guardarPerfilSinConexion,
   consultarPerfil: (sesion) => consultarPerfil(obtenerSupabase(), sesion.usuarioId),
   tieneOtpReciente,
   observarSesion,

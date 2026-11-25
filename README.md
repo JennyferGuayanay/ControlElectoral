@@ -6,7 +6,7 @@ Aplicación móvil de escrutinio con Expo SDK 57, TypeScript y Clean Architectur
 
 ```sh
 npm ci
-npx expo start --dev-client
+npm run android
 npx expo lint
 npx tsc --noEmit
 npx expo install --check
@@ -14,6 +14,8 @@ npx expo-doctor
 ```
 
 `src/app` contiene las rutas. Cada módulo en `src/modulos` reserva sus capas de dominio, aplicación, infraestructura y presentación. La [guía de Supabase](supabase/README.md) documenta las migraciones, la precarga y el despliegue de las Edge Functions.
+
+En Android, instala el APK del perfil `development` y abre **ControlElectoral**. Con el teléfono conectado por USB y autorizado en ADB, `npm run android` inicia Metro y abre el cliente de desarrollo. Para conectarte por Wi‑Fi, ejecuta `npm start` y abre la sesión desde el lanzador de **ControlElectoral**. La terminal debe mostrar `Using development build`. Si aparece Expo Go, vuelve a abrir el enlace desde ControlElectoral. Expo Go carece de los módulos de MapLibre y VisionCamera que utiliza la app.
 
 ## Compilación Android
 

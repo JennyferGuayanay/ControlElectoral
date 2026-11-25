@@ -98,7 +98,15 @@ export function errorRpc(error: { code: string }) {
 }
 
 export function generarClaveTemporal(): string {
-  const aleatorio = crypto.getRandomValues(new Uint8Array(12));
-  const codigo = Array.from(aleatorio, (byte) => byte.toString(16).padStart(2, '0')).join('');
-  return `Ce-${codigo}!`;
+  const alfabeto = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const bytes = new Uint8Array(8);
+  const limite = 256 - (256 % alfabeto.length);
+
+  for (;;) {
+    crypto.getRandomValues(bytes);
+    if (bytes.some((byte) => byte >= limite)) continue;
+
+    const clave = Array.from(bytes, (byte) => alfabeto[byte % alfabeto.length]).join('');
+    if (/[A-Z]/.test(clave) && /[a-z]/.test(clave) && /[0-9]/.test(clave)) return clave;
+  }
 }

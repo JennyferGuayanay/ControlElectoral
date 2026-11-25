@@ -1,3 +1,4 @@
+import { useNetInfo } from '@react-native-community/netinfo';
 import { createContext, useContext, useEffect, useState, type PropsWithChildren } from 'react';
 import { AppState } from 'react-native';
 
@@ -8,6 +9,7 @@ import type { EstadoAutenticado } from '../dominio/acceso';
 
 type EstadoFinal = EstadoAutenticado | { tipo: 'error'; mensaje: string };
 type EstadoAcceso = EstadoFinal | { tipo: 'cargando' } | { tipo: 'sin-sesion' };
+const requiereConexion: EstadoFinal = { tipo: 'error', mensaje: 'Conéctate a internet para comprobar el acceso de esta sesión.' };
 
 type ContextoAcceso = {
   repositorio: RepositorioAcceso;
@@ -25,9 +27,11 @@ export function ProveedorAcceso({
 }: PropsWithChildren<{ repositorio: RepositorioAcceso; reportarFallo: ReportarFallo }>) {
   const [sesion, fijarSesion] = useState<Sesion | null>();
   const [revision, fijarRevision] = useState(0);
-  const [resultado, fijarResultado] = useState<{ usuarioId: string; estado: EstadoFinal }>();
+  const [resultado, fijarResultado] = useState<{ usuarioId: string; token: string; estado: EstadoFinal }>();
   const [errorInicial, fijarErrorInicial] = useState(false);
   const [claveActualizada, fijarClaveActualizada] = useState(false);
+  const red = useNetInfo();
+  const sinConexion = red.isConnected === false || red.isInternetReachable === false;
 
   useEffect(() => {
     let vigente = true;
@@ -64,16 +68,34 @@ export function ProveedorAcceso({
   useEffect(() => {
     if (!sesion) return;
     let vigente = true;
+    const identidad = { usuarioId: sesion.usuarioId, token: sesion.token };
+    if (sinConexion) {
+      void repositorio.leerPerfilSinConexion(sesion).catch(() => null).then((perfil) => {
+        if (!vigente) return;
+        const estado: EstadoFinal = perfil ? { tipo: 'habilitado', perfil } : requiereConexion;
+        fijarResultado((anterior) => {
+          if (!perfil && sesion.expiraEn > Date.now() && anterior?.usuarioId === sesion.usuarioId
+            && anterior.token === sesion.token && anterior.estado.tipo === 'habilitado'
+            && anterior.estado.perfil.rol_codigo === 'provincial') return anterior;
+          return { ...identidad, estado };
+        });
+      });
+      const restante = sesion.expiraEn - Date.now();
+      const fin = restante > 0 ? setTimeout(() => fijarRevision((anterior) => anterior + 1), restante) : undefined;
+      return () => { vigente = false; clearTimeout(fin); };
+    }
 
     void resolverAcceso(repositorio, sesion)
-      .then((estado) => {
-        if (vigente) fijarResultado({ estado, usuarioId: sesion.usuarioId });
+      .then(async (estado) => {
+        if (!vigente) return;
+        await repositorio.guardarPerfilSinConexion(sesion, estado.tipo === 'habilitado' ? estado.perfil : null).catch(() => undefined);
+        if (vigente) fijarResultado({ ...identidad, estado });
       })
       .catch((error: unknown) => {
         if (vigente) {
           reportarFallo('comprobar-acceso', error);
           fijarResultado({
-            usuarioId: sesion.usuarioId,
+            ...identidad,
             estado: { tipo: 'error', mensaje: 'No pudimos comprobar tu acceso. Revisa la conexión e inténtalo de nuevo.' },
           });
         }
@@ -82,7 +104,7 @@ export function ProveedorAcceso({
     return () => {
       vigente = false;
     };
-  }, [repositorio, reportarFallo, sesion, revision]);
+  }, [repositorio, reportarFallo, sesion, revision, sinConexion]);
 
   function revisar() {
     fijarRevision((anterior) => anterior + 1);
@@ -98,7 +120,12 @@ export function ProveedorAcceso({
     estado = { tipo: 'error', mensaje: 'No hay conexión configurada con el servidor de acceso.' };
   } else if (sesion === null) {
     estado = { tipo: 'sin-sesion' };
-  } else if (sesion && resultado?.usuarioId === sesion.usuarioId) {
+  } else if (sesion && resultado?.usuarioId === sesion.usuarioId && (
+    !sinConexion || (resultado.token === sesion.token && (
+      resultado.estado === requiereConexion || (resultado.estado.tipo === 'habilitado'
+        && (resultado.estado.perfil.rol_codigo === 'veedor' || resultado.estado.perfil.rol_codigo === 'provincial'))
+    ))
+  )) {
     estado = resultado.estado;
   }
 

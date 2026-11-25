@@ -1,6 +1,9 @@
 export const pantallas = [
   'inicio', 'ingresar', 'verificar-correo', 'recuperar', 'cambiar-clave',
   'provincial', 'recinto', 'veedor', 'diagnostico-sentry',
+  'territorio', 'cuentas-provinciales', 'coordinaciones', 'mesas-recinto', 'seguimiento',
+  'veedores-recinto', 'mi-asignacion',
+  'actas', 'actas-provinciales', 'actas-recinto',
 ] as const;
 
 export const operaciones = [

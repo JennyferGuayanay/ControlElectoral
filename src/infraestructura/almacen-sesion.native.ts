@@ -46,7 +46,9 @@ export const almacenSesion = {
     const llave = await leerLlave();
     if (llave) {
       try {
-        const bytes = await aesDecryptAsync(AESSealedData.fromCombined(contenido), llave, {
+        // SQLite guarda Base64, pero el constructor nativo de Android recibe bytes.
+        const cifrado = Uint8Array.from(atob(contenido), (caracter) => caracter.charCodeAt(0));
+        const bytes = await aesDecryptAsync(AESSealedData.fromCombined(cifrado), llave, {
           additionalData: codificarUtf8(nombre),
         });
         return new TextDecoder().decode(bytes);

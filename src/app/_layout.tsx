@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { repositorioAcceso } from '@/modulos/acceso/infraestructura/repositorio-supabase';
 import { Aviso, Boton, Encabezado, Marco } from '@/modulos/acceso/presentacion/interfaz';
 import { ProveedorAcceso, useAcceso } from '@/modulos/acceso/presentacion/proveedor-acceso';
+import { ActivarSincronizacionActas } from '@/modulos/actas/presentacion/activar-sincronizacion';
 import { obtenerPantalla } from '@/modulos/monitoreo/aplicacion/monitoreo';
 import { LimiteErrores, fijarContexto, reportarFallo } from '@/modulos/monitoreo/infraestructura/sentry';
 
@@ -54,6 +55,7 @@ export default function NavegacionPrincipal() {
       <QueryClientProvider client={consultas}>
         <ProveedorAcceso repositorio={repositorioAcceso} reportarFallo={reportarFallo}>
           <StatusBar style="dark" />
+          <ActivarSincronizacionActas />
           <RutasProtegidas />
         </ProveedorAcceso>
       </QueryClientProvider>

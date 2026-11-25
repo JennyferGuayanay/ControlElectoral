@@ -1,6 +1,6 @@
 import { decidirAcceso, type Perfil } from '../dominio/acceso';
 
-export type Sesion = { usuarioId: string; token: string };
+export type Sesion = { usuarioId: string; token: string; expiraEn: number };
 export type RecuperacionVerificada = { cambiarClave(clave: string): Promise<void> };
 
 export interface LecturaAcceso {
@@ -9,6 +9,8 @@ export interface LecturaAcceso {
 }
 
 export interface RepositorioAcceso extends LecturaAcceso {
+  leerPerfilSinConexion(sesion: Sesion): Promise<Perfil | null>;
+  guardarPerfilSinConexion(sesion: Sesion, perfil: Perfil | null): Promise<void>;
   observarSesion(notificar: (sesion: Sesion | null) => void): () => void;
   iniciarSesion(correo: string, clave: string): Promise<void>;
   cerrarSesion(): Promise<void>;
